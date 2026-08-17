@@ -143,3 +143,36 @@ def delete_todo(id):
     db.session.commit()
 
     return {"message": "Deleted"}
+
+# ============================
+# ADMIN ROUTE (view database)
+# ============================
+
+@main.route("/admin/data")
+def admin_data():
+    key = request.args.get("key")
+    if key != "bdm2026":
+        return {"error": "Forbidden"}, 403
+
+    users = User.query.all()
+    todos = Todo.query.all()
+
+    return {
+        "users": [
+            {"id": u.id, "username": u.username}
+            for u in users
+        ],
+        "todos": [
+            {
+                "id": t.id,
+                "name": t.name,
+                "description": t.description,
+                "status": t.status,
+                "category": t.category,
+                "priority": t.priority,
+                "due_date": t.due_date.isoformat() if t.due_date else None,
+                "owner": t.user.username
+            }
+            for t in todos
+        ]
+    }
