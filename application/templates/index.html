@@ -27,13 +27,20 @@
   
   <!-- Loading State -->
   <div v-if="loading" style="text-align: center; padding: 20px;">
-    <i class="ph ph-spinner ph-spin" style="font-size: 32px;"></i>
+    <i class="ph ph-spinner" style="font-size: 32px; animation: spin 1s linear infinite;"></i>
   </div>
 
   <!-- Auth Screen -->
   <div v-else-if="!user" class="auth-screen">
+    <!-- Theme toggle on auth screen -->
+    <div style="text-align: right; margin-bottom: 12px;">
+      <button class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'">
+        <i :class="theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon'"></i>
+      </button>
+    </div>
+
     <div class="header">
-      <h2><i class="ph ph-user-circle" style="vertical-align: middle;"></i> {{ authMode === 'login' ? 'Welcome Back' : 'Create Account' }}</h2>
+      <h2><i class="ph ph-check-circle" style="vertical-align: middle;"></i> {{ authMode === 'login' ? 'Welcome Back' : 'Create Account' }}</h2>
       <p style="color: var(--text-muted); font-size: 14px; margin-top: 8px;">
         {{ authMode === 'login' ? 'Login to access your tasks' : 'Sign up to get started' }}
       </p>
@@ -64,38 +71,69 @@
 
   <!-- Main App -->
   <div v-else>
-    <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-      <div style="display: flex; align-items: center; gap: 8px;">
+
+    <!-- Top Bar: User info + actions -->
+    <div class="top-bar">
+      <div class="top-bar-left">
         <i class="ph ph-user-circle" style="font-size: 24px; color: #8b5cf6;"></i>
         <span style="font-weight: 600; font-size: 16px;">{{ user.username }}</span>
       </div>
-      <button class="btn btn-icon delete" @click="logout" title="Logout">
-        <i class="ph ph-sign-out"></i>
-      </button>
+      <div class="top-bar-right">
+        <button class="theme-toggle" @click="toggleTheme" :title="theme === 'dark' ? 'Light Mode' : 'Dark Mode'">
+          <i :class="theme === 'dark' ? 'ph ph-sun' : 'ph ph-moon'"></i>
+        </button>
+        <button class="btn btn-icon edit" @click="openPasswordModal" title="Change Password">
+          <i class="ph ph-key"></i>
+        </button>
+        <button class="btn btn-icon delete" @click="logout" title="Logout">
+          <i class="ph ph-sign-out"></i>
+        </button>
+      </div>
     </div>
 
-    <div class="header" style="margin-bottom: 24px;">
-      <h2 style="font-size: 24px;"><i class="ph ph-check-circle" style="vertical-align: middle;"></i> My Tasks</h2>
+    <!-- Dashboard Stats -->
+    <div class="stats-grid">
+      <div class="stat-card stat-total">
+        <span class="stat-number">{{ totalCount }}</span>
+        <span class="stat-label">Total</span>
+      </div>
+      <div class="stat-card stat-pending">
+        <span class="stat-number">{{ pendingCount }}</span>
+        <span class="stat-label">Pending</span>
+      </div>
+      <div class="stat-card stat-completed">
+        <span class="stat-number">{{ completedCount }}</span>
+        <span class="stat-label">Done</span>
+      </div>
+      <div class="stat-card stat-overdue">
+        <span class="stat-number">{{ overdueCount }}</span>
+        <span class="stat-label">Overdue</span>
+      </div>
     </div>
 
+    <div class="header" style="margin-bottom: 20px;">
+      <h2 style="font-size: 22px;"><i class="ph ph-check-circle" style="vertical-align: middle;"></i> My Tasks</h2>
+    </div>
+
+    <!-- Add Task Form -->
     <div class="input-group">
       <input v-model="name" placeholder="What needs to be done?" @keyup.enter="addTodo">
       <input v-model="description" placeholder="Description (optional)" @keyup.enter="addTodo">
       
-      <div style="display: flex; gap: 8px;">
-        <input type="date" v-model="dueDate" style="flex: 1;">
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <input type="date" v-model="dueDate" style="flex: 1; min-width: 120px;">
         
-        <select v-model="category" style="flex: 1;">
+        <select v-model="category" style="flex: 1; min-width: 100px;">
           <option value="General">General</option>
           <option value="Work">Work</option>
           <option value="Personal">Personal</option>
           <option value="Errands">Errands</option>
         </select>
         
-        <select v-model="priority" style="flex: 1;">
-          <option value="Low">Low Priority</option>
-          <option value="Medium">Medium Priority</option>
-          <option value="High">High Priority</option>
+        <select v-model="priority" style="flex: 1; min-width: 100px;">
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
         </select>
       </div>
 
@@ -108,16 +146,16 @@
     <div class="actions-row">
       <input type="file" ref="fileInput" @change="importBackup" accept=".json" style="display: none;">
       <button class="btn btn-success" @click="$refs.fileInput.click()">
-        <i class="ph ph-download-simple"></i> Import Backup
+        <i class="ph ph-download-simple"></i> Import
       </button>
       <button class="btn btn-info" @click="exportBackup">
-        <i class="ph ph-export"></i> Export Backup
+        <i class="ph ph-export"></i> Export
       </button>
     </div>
 
     <!-- Filters & Search -->
-    <div class="filters" style="display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; margin-bottom: 20px;">
-      <input v-model="searchQuery" placeholder="Search tasks..." style="flex: 1; min-width: 150px; margin: 0;">
+    <div class="filters">
+      <input v-model="searchQuery" placeholder="Search tasks..." style="flex: 1; min-width: 120px; margin: 0;">
       
       <select v-model="filterCategory" style="width: auto; margin: 0;">
         <option value="">All Categories</option>
@@ -126,14 +164,14 @@
 
       <select v-model="filterPriority" style="width: auto; margin: 0;">
         <option value="">All Priorities</option>
-        <option value="Low">Low Priority</option>
-        <option value="Medium">Medium Priority</option>
-        <option value="High">High Priority</option>
+        <option value="Low">Low</option>
+        <option value="Medium">Medium</option>
+        <option value="High">High</option>
       </select>
 
       <select v-model="sortType" style="width: auto; margin: 0;">
-        <option value="date">Sort by Due Date</option>
-        <option value="status">Sort by Status</option>
+        <option value="date">By Date</option>
+        <option value="status">By Status</option>
       </select>
     </div>
 
@@ -159,11 +197,14 @@
                 <span class="badge badge-cat" v-if="todo.category">
                   {{ todo.category }}
                 </span>
-                <span class="badge badge-priority" :class="'badge-priority-' + (todo.priority ? todo.priority.toLowerCase() : 'medium')" v-if="todo.priority">
+                <span class="badge" :class="'badge-priority-' + (todo.priority ? todo.priority.toLowerCase() : 'medium')" v-if="todo.priority">
                   {{ todo.priority }}
                 </span>
                 <span class="badge badge-date" v-if="todo.due_date">
                   <i class="ph ph-calendar-blank"></i> {{ formatDate(todo.due_date) }}
+                </span>
+                <span class="badge badge-due-today" v-if="isDueToday(todo)">
+                  <i class="ph ph-bell-ringing"></i> Due Today
                 </span>
                 <span class="badge badge-overdue" v-if="isOverdue(todo)">
                   <i class="ph ph-warning-circle"></i> Overdue
@@ -173,17 +214,17 @@
 
             <template v-else>
               <input v-model="editName" placeholder="Edit task name..." @keyup.enter="saveEdit(todo)" style="margin-bottom: 8px;">
-              <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-                <select v-model="editCategory" style="margin:0; flex: 1;">
+              <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
+                <select v-model="editCategory" style="margin:0; flex: 1; min-width: 100px;">
                   <option value="General">General</option>
                   <option value="Work">Work</option>
                   <option value="Personal">Personal</option>
                   <option value="Errands">Errands</option>
                 </select>
-                <select v-model="editPriority" style="margin:0; flex: 1;">
-                  <option value="Low">Low Priority</option>
-                  <option value="Medium">Medium Priority</option>
-                  <option value="High">High Priority</option>
+                <select v-model="editPriority" style="margin:0; flex: 1; min-width: 100px;">
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
                 </select>
               </div>
             </template>
@@ -205,6 +246,38 @@
         
       </div>
     </TransitionGroup>
+
+    <!-- Empty state -->
+    <div v-if="filteredTodos.length === 0" style="text-align: center; padding: 40px 20px; color: var(--text-muted);">
+      <i class="ph ph-clipboard-text" style="font-size: 48px; display: block; margin-bottom: 12px;"></i>
+      <p>No tasks found</p>
+    </div>
+
+    <!-- Change Password Modal -->
+    <div v-if="showPasswordModal" class="modal-overlay" @click.self="closePasswordModal">
+      <div class="modal-box">
+        <h3><i class="ph ph-key" style="vertical-align: middle;"></i> Change Password</h3>
+        
+        <div class="input-group">
+          <input v-model="currentPassword" type="password" placeholder="Current Password" @keyup.enter="changePassword">
+          <input v-model="newPassword" type="password" placeholder="New Password" @keyup.enter="changePassword">
+          
+          <div v-if="passwordError" style="color: var(--danger-color); font-size: 12px;">
+            {{ passwordError }}
+          </div>
+          <div v-if="passwordMsg" style="color: var(--success-color); font-size: 12px;">
+            {{ passwordMsg }}
+          </div>
+
+          <button class="btn btn-primary" @click="changePassword">
+            Update Password
+          </button>
+          <button class="btn btn-warning" @click="closePasswordModal" style="width: 100%;">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
 
   </div>
 {% endraw %}

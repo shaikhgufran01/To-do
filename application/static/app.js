@@ -6,10 +6,20 @@ createApp({
       // Auth state
       user: null,
       loading: true,
-      authMode: 'login', // 'login' or 'register'
+      authMode: 'login',
       authUsername: '',
       authPassword: '',
       authError: null,
+
+      // Theme
+      theme: localStorage.getItem('theme') || 'dark',
+
+      // Change Password
+      showPasswordModal: false,
+      currentPassword: '',
+      newPassword: '',
+      passwordMsg: '',
+      passwordError: '',
 
       // App state
       todos: [],
@@ -36,16 +46,14 @@ createApp({
   },
 
   mounted() {
+    this.applyTheme();
     this.checkAuth();
   },
 
   computed: {
     filteredTodos() {
-      // Create a shallow copy so we can sort without mutating the original prop directly if needed,
-      // though Vue 3 handles reactive arrays fine. We use a slice.
       let result = this.todos.slice();
 
-      // 1. Search filter
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase();
         result = result.filter(t => 
@@ -54,17 +62,14 @@ createApp({
         );
       }
 
-      // 2. Category Filter
       if (this.filterCategory) {
         result = result.filter(t => t.category === this.filterCategory);
       }
 
-      // 3. Priority Filter
       if (this.filterPriority) {
         result = result.filter(t => t.priority === this.filterPriority);
       }
 
-      // 4. Sorting
       if (this.sortType === "date") {
         result.sort((a, b) => {
           if (!a.due_date) return 1;
@@ -82,15 +87,38 @@ createApp({
     },
     
     uniqueCategories() {
-      // Extract unique categories from todos for the filter dropdown
       const categories = new Set(this.todos.map(t => t.category).filter(Boolean));
       return Array.from(categories).sort();
+    },
+
+    // Dashboard Stats
+    totalCount() {
+      return this.todos.length;
+    },
+    pendingCount() {
+      return this.todos.filter(t => t.status === 'pending' && !this.isOverdue(t)).length;
+    },
+    completedCount() {
+      return this.todos.filter(t => t.status === 'completed').length;
+    },
+    overdueCount() {
+      return this.todos.filter(t => this.isOverdue(t)).length;
     }
   },
 
   methods: {
+    // --- Theme ---
+    toggleTheme() {
+      this.theme = this.theme === 'dark' ? 'light' : 'dark';
+      localStorage.setItem('theme', this.theme);
+      this.applyTheme();
+    },
+
+    applyTheme() {
+      document.documentElement.setAttribute('data-theme', this.theme);
+    },
+
     // --- Auth Methods ---
-    
     async checkAuth() {
       try {
         const res = await axios.get('/auth/me');
@@ -139,14 +167,47 @@ createApp({
       }
     },
 
-    // --- Todo Methods ---
+    // --- Change Password ---
+    openPasswordModal() {
+      this.showPasswordModal = true;
+      this.currentPassword = '';
+      this.newPassword = '';
+      this.passwordMsg = '';
+      this.passwordError = '';
+    },
 
+    closePasswordModal() {
+      this.showPasswordModal = false;
+    },
+
+    async changePassword() {
+      this.passwordMsg = '';
+      this.passwordError = '';
+
+      if (!this.currentPassword || !this.newPassword) {
+        this.passwordError = "Both fields are required.";
+        return;
+      }
+
+      try {
+        const res = await axios.post('/auth/change-password', {
+          current_password: this.currentPassword,
+          new_password: this.newPassword
+        });
+        this.passwordMsg = res.data.message;
+        this.currentPassword = '';
+        this.newPassword = '';
+        setTimeout(() => this.closePasswordModal(), 1500);
+      } catch (err) {
+        this.passwordError = err.response?.data?.error || "Failed to change password.";
+      }
+    },
+
+    // --- Todo Methods ---
     async fetchTodos() {
       try {
         const res = await axios.get("/todos");
         this.todos = res.data;
-
-        // Backup for current user
         localStorage.setItem(`todos_backup_${this.user.id}`, JSON.stringify(this.todos));
       } catch (err) {
         console.error("Failed to fetch todos from server, loading backup");
@@ -176,7 +237,6 @@ createApp({
         this.dueDate = "";
         this.category = "General";
         this.priority = "Medium";
-
         this.fetchTodos();
       } catch (err) {
         alert(err.response?.data?.error || "Failed to add todo");
@@ -194,9 +254,7 @@ createApp({
 
     async toggleStatus(todo) {
       try {
-        await axios.put(`/todos/${todo.id}`, {
-          status: todo.status
-        });
+        await axios.put(`/todos/${todo.id}`, { status: todo.status });
       } catch (err) {
         alert("Failed to update status");
       }
@@ -210,17 +268,13 @@ createApp({
     },
 
     async saveEdit(todo) {
-      if (!this.editName) {
-        this.editId = null;
-        return;
-      }
+      if (!this.editName) { this.editId = null; return; }
       try {
         await axios.put(`/todos/${todo.id}`, {
           name: this.editName,
           category: this.editCategory,
           priority: this.editPriority
         });
-
         this.editId = null;
         this.fetchTodos();
       } catch (err) {
@@ -235,7 +289,20 @@ createApp({
 
     isOverdue(todo) {
       if (!todo.due_date) return false;
-      return new Date(todo.due_date) < new Date() && todo.status !== "completed";
+      const dueDate = new Date(todo.due_date);
+      const today = new Date();
+      dueDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      return dueDate < today && todo.status !== "completed";
+    },
+
+    isDueToday(todo) {
+      if (!todo.due_date) return false;
+      const dueDate = new Date(todo.due_date);
+      const today = new Date();
+      dueDate.setHours(0, 0, 0, 0);
+      today.setHours(0, 0, 0, 0);
+      return dueDate.getTime() === today.getTime() && todo.status !== "completed";
     },
 
     async importBackup(event) {

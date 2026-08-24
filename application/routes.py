@@ -60,6 +60,30 @@ def me():
         return {"user": {"id": session["user_id"], "username": session.get("username")}}
     return {"user": None}, 401
 
+@main.route("/auth/change-password", methods=["POST"])
+def change_password():
+    if "user_id" not in session:
+        return {"error": "Unauthorized"}, 401
+
+    data = request.get_json()
+    current_password = data.get("current_password")
+    new_password = data.get("new_password")
+
+    if not current_password or not new_password:
+        return {"error": "Both current and new password are required"}, 400
+
+    if len(new_password) < 4:
+        return {"error": "New password must be at least 4 characters"}, 400
+
+    user = User.query.get(session["user_id"])
+    if not check_password_hash(user.password_hash, current_password):
+        return {"error": "Current password is incorrect"}, 401
+
+    user.password_hash = generate_password_hash(new_password)
+    db.session.commit()
+
+    return {"message": "Password changed successfully"}
+
 # ============================
 # TODO ROUTES
 # ============================
