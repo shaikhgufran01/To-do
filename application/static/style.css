@@ -21,15 +21,15 @@
 }
 
 [data-theme="light"] {
-  --bg-color: #f1f5f9;
-  --container-bg: #ffffff;
-  --text-main: #1e293b;
+  --bg-color: #e2e8f0;
+  --container-bg: #f1f5f9;
+  --text-main: #334155;
   --text-muted: #64748b;
-  --border-color: #e2e8f0;
-  --input-bg: #f8fafc;
-  --item-bg: #f8fafc;
-  --item-hover: #f1f5f9;
-  --shadow: 0 20px 40px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  --border-color: #cbd5e1;
+  --input-bg: #e2e8f0;
+  --item-bg: #e8ecf1;
+  --item-hover: #dde3ea;
+  --shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(0, 0, 0, 0.06);
 }
 
 /* ======================== */

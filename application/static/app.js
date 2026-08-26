@@ -40,6 +40,7 @@ createApp({
       // Edit state
       editId: null,
       editName: "",
+      editDueDate: "",
       editCategory: "",
       editPriority: ""
     };
@@ -263,6 +264,7 @@ createApp({
     startEdit(todo) {
       this.editId = todo.id;
       this.editName = todo.name;
+      this.editDueDate = todo.due_date ? todo.due_date.split('T')[0] : '';
       this.editCategory = todo.category || 'General';
       this.editPriority = todo.priority || 'Medium';
     },
@@ -272,6 +274,7 @@ createApp({
       try {
         await axios.put(`/todos/${todo.id}`, {
           name: this.editName,
+          due_date: this.editDueDate,
           category: this.editCategory,
           priority: this.editPriority
         });
