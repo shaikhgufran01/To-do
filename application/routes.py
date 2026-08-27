@@ -145,6 +145,7 @@ def update_todo(id):
     data = request.get_json()
 
     todo.name = data.get("name", todo.name)
+    todo.description = data.get("description", todo.description)
     todo.status = data.get("status", todo.status)
     todo.category = data.get("category", todo.category)
     todo.priority = data.get("priority", todo.priority)
