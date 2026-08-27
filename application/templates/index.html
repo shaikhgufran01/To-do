@@ -214,6 +214,7 @@
 
             <template v-else>
               <input v-model="editName" placeholder="Edit task name..." @keyup.enter="saveEdit(todo)" style="margin-bottom: 8px;">
+              <input v-model="editDescription" placeholder="Edit description..." @keyup.enter="saveEdit(todo)" style="margin-bottom: 8px;">
               <div style="display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap;">
                 <input type="date" v-model="editDueDate" style="margin:0; flex: 1; min-width: 120px;">
                 <select v-model="editCategory" style="margin:0; flex: 1; min-width: 100px;">
